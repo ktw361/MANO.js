@@ -1,6 +1,9 @@
-import * as tf from '@tensorflow/tfjs';
-import { tensor } from '@tensorflow/tfjs';
+/* Uncomment below to run in browser */
 // import * as THREE from 'three';
+
+/* Uncomment below to run mano_test.js */
+import * as tf from '@tensorflow/tfjs';
+import * as THREE from 'three';
 
 export { 
     MANO,
@@ -167,7 +170,6 @@ class MANO {
         // }
 
         const dd = this.ready_argument(mano_object);
-        // const dd = this.ready_argument(this.mano_path);
         this.betas = tf.expandDims(dd.betas, 0);
         this.shapedirs = dd.shapedirs;
         this.posedirs = dd.posedirs;
@@ -185,11 +187,25 @@ class MANO {
             this.select_comps = hands_components.slice([0], [ncomps]);
         } else {
             throw Error;
-            // this.hands_mean_rotmat
         }
         
         this.kintree_table = dd.kintree_table;
 
+        // Three.js fields
+        const geometry = new THREE.BufferGeometry();
+        geometry.setIndex(this.faces.dataSync());
+        const colors = [];
+        for (let i = 0; i < 778; i++) {
+            const r = i / 28 / 28;
+            const g = (i % 28) / 28;
+            colors.push(r, g, 0.5);
+        }
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        const material = new THREE.MeshPhongMaterial( {
+            side: THREE.DoubleSide,
+            vertexColors: true
+        } );
+        this.mesh = new THREE.Mesh(geometry, material);
     }
 
     // async read_mano_json(mano_path) {
@@ -197,11 +213,9 @@ class MANO {
     //     return data.json();
     // }
 
-    // set ?
     ready_argument(data, posekey4vposed = 'pose') {
         // const data = await this.read_mano_json(mano_path);
-
-        console.log(Object.keys(data));
+        // console.log(Object.keys(data));
 
         let dd = {};
         for (const k in data) {
@@ -414,5 +428,12 @@ class MANO {
         verts = verts.mul(1000);
         jtr = jtr.mul(1000);
         return [verts, jtr];
+    }
+
+    // See forward() for args
+    forward_mesh(poses, betas, trans, root_palm=false) {
+        const [verts, jtr] = this.forward(poses, betas, trans, root_palm);
+        this.mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts.dataSync(), 3));
+        return this.mesh;
     }
 }

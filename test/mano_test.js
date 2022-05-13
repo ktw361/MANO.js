@@ -1,6 +1,6 @@
-import * as tf from '@tensorflow/tfjs';
 import * as fs from 'fs';
-import * as mano from './mano.js';
+import * as tf from '@tensorflow/tfjs';
+import * as mano from './../mano.js';
 
 function Rodrigues_forward_test() {
     const vec = tf.tensor([2.90096335, 5.67236714, 6.29441052]);
@@ -389,8 +389,6 @@ function test_functions() {
 
 function test_class() {
     let mano_obj = JSON.parse(fs.readFileSync('./data/MANO_RIGHT.json'));
-    // const path = './data/MANO_RIGHT.json';
-    // mano.ready_argument(path);
 
     const test_1 = () => {
         let model = new mano.MANO(
@@ -469,9 +467,23 @@ function test_class() {
         tf.test_util.expectArraysClose(jtr.dataSync(), jtr_exp.dataSync(), 0.005);
     }
 
-    // test_1();
+    test_1();
     test_2();
+}
+
+function test_threejs() {
+    let mano_obj = JSON.parse(fs.readFileSync('./data/MANO_RIGHT.json'));
+
+    let model = new mano.MANO(
+        mano_obj
+    );
+    const poses = tf.zeros([1, 48]);
+    const betas = tf.zeros([1]);
+    const trans = tf.zeros([1, 3]);
+    let mesh = model.forward_mesh(poses, betas, trans, false);
+    console.log(mesh);
 }
 
 test_functions();
 test_class();
+test_threejs();
