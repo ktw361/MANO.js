@@ -392,7 +392,14 @@ function test_class() {
 
     const test_1 = () => {
         let model = new mano.MANO(
-            mano_obj
+            mano_obj,
+            null,
+            true,
+            45,
+            'right',
+            false,
+            'axisang',
+            'axisang',
         );
         const poses = tf.zeros([1, 48]);
         const betas = tf.zeros([1]);
@@ -467,8 +474,52 @@ function test_class() {
         tf.test_util.expectArraysClose(jtr.dataSync(), jtr_exp.dataSync(), 0.005);
     }
 
+    const test_ncomp6_pca = () => {
+        let model = new mano.MANO(
+            mano_obj,
+            null,
+            true,
+            6,
+            'right',
+            true,
+            'axisang',
+            'axisang',
+        );
+        const poses = tf.tensor([
+            [ 0.0000,  0.0000,  0.0000,  
+                0.0838, -0.1959,  0.2546, 
+                -0.1168, -0.0063, 0.1333]])
+        const betas = tf.zeros([1]);
+        const trans = tf.zeros([1, 3]);
+        let [verts, jtr] = model.forward(poses, betas, trans, false);
+        const jtr_exp = tf.tensor([[[ 95.66994  ,   6.383428 ,   6.1863055],
+                [ 71.58022  ,  -9.138905 ,  31.99915  ],
+                [ 50.873882 ,  -9.641735 ,  54.779015 ],
+                [ 28.20297  , -15.107807 ,  68.572014 ],
+                [  1.5052608, -19.702381 ,  90.301704 ],
+                [  7.572688 ,   1.1830716,  26.872295 ],
+                [-25.378666 ,   2.082685 ,  28.388939 ],
+                [-47.166637 ,  -2.1320236,  28.0662   ],
+                [-70.32147  ,  -2.213683 ,  32.315975 ],
+                [  1.0094867,   4.9044647,   2.8287647],
+                [-30.308168 ,   3.8131227,  -2.184738 ],
+                [-53.21139  ,   2.2580278,  -6.0283327],
+                [-79.09154  ,   4.72245  , -11.263689 ],
+                [ 13.934374 ,   2.4260077, -20.486887 ],
+                [-14.573066 ,   4.002304 , -24.586523 ],
+                [-38.332188 ,   5.366571 , -31.51343  ],
+                [-60.08852  ,  14.572218 , -37.948147 ],
+                [ 26.882961 ,  -3.5569003, -37.023033 ],
+                [  9.661842 ,  -1.4361116, -49.050037 ],
+                [ -5.733446 ,   1.5174232, -59.691765 ],
+                [-20.11126  ,   9.285446 , -69.8734   ]]]);
+
+        tf.test_util.expectArraysClose(jtr.dataSync(), jtr_exp.dataSync(), 0.005);
+    }
+
     test_1();
     test_2();
+    test_ncomp6_pca();
 }
 
 function test_threejs() {

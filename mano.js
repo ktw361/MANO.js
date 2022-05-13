@@ -1,9 +1,7 @@
-/* Uncomment below to run in browser */
-// import * as THREE from 'three';
-
-/* Uncomment below to run mano_test.js */
-import * as tf from '@tensorflow/tfjs';
 import * as THREE from 'three';
+
+/* Uncomment below to run mano_test.js in node.js*/
+import * as tf from '@tensorflow/tfjs';
 
 export { 
     MANO,
@@ -193,30 +191,29 @@ class MANO {
 
         // Three.js fields
         const geometry = new THREE.BufferGeometry();
-        geometry.setIndex(this.faces.dataSync());
+        geometry.setIndex(Array.from(this.faces.dataSync()));
         const colors = [];
         for (let i = 0; i < 778; i++) {
             const r = i / 28 / 28;
             const g = (i % 28) / 28;
             colors.push(r, g, 0.5);
         }
+        // Set init vertices
+        geometry.setAttribute('position', 
+            new THREE.Float32BufferAttribute(this.v_template.dataSync(), 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         const material = new THREE.MeshPhongMaterial( {
             side: THREE.DoubleSide,
             vertexColors: true
         } );
         this.mesh = new THREE.Mesh(geometry, material);
+        // const geo = new THREE.EdgesGeometry(this.mesh.geometry); // or WireframeGeometry
+        // const mat = new THREE.LineBasicMaterial({ color: 0xffffff });
+        // const wireframe = new THREE.LineSegments(geo, mat);
+        // this.mesh.add(wireframe);
     }
 
-    // async read_mano_json(mano_path) {
-    //     const data = await fetch(mano_path);
-    //     return data.json();
-    // }
-
     ready_argument(data, posekey4vposed = 'pose') {
-        // const data = await this.read_mano_json(mano_path);
-        // console.log(Object.keys(data));
-
         let dd = {};
         for (const k in data) {
             const v = data[k];
@@ -425,15 +422,39 @@ class MANO {
             throw Error;
         }
 
-        verts = verts.mul(1000);
-        jtr = jtr.mul(1000);
+        // const scale = 1000.0;
+        // verts = verts.mul(scale);
+        // jtr = jtr.mul(scale);
         return [verts, jtr];
     }
 
-    // See forward() for args
+    // three.js wrapper of this.forward()
     forward_mesh(poses, betas, trans, root_palm=false) {
-        const [verts, jtr] = this.forward(poses, betas, trans, root_palm);
-        this.mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts.dataSync(), 3));
+        const [verts_th, jtr_th] = this.forward(poses, betas, trans, root_palm);
+        const verts = verts_th.dataSync();
+
+        for (let i = 0; i < verts_th.shape[0]; i++) {
+            this.mesh.geometry.attributes.position.setXYZ(
+                i, verts[3*i], verts[3*i+1], verts[3*i+2]);
+        }
+        this.mesh.geometry.attributes.position.needsUpdate = true;
+        this.mesh.geometry.computeVertexNormals();
+
+        // const scale = 100.0;
+        // this.mesh.geometry.scale(scale, scale, scale);
         return this.mesh;
+    }
+
+    set_mesh(mesh, poses, betas, trans, root_palm=false) {
+        const [verts_th, jtr_th] = this.forward(poses, betas, trans, root_palm);
+        const verts = verts_th.dataSync();
+
+        for (let i = 0; i < verts_th.shape[0]; i++) {
+            mesh.geometry.attributes.position.setXYZ(
+                i, verts[3*i], verts[3*i+1], verts[3*i+2]);
+        }
+        mesh.geometry.attributes.position.needsUpdate = true;
+        console.log(verts_th.sum().dataSync());
+        mesh.geometry.computeVertexNormals();
     }
 }
