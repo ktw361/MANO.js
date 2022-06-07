@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /* Uncomment below to run mano_test.js in node.js*/
-import * as tf from '@tensorflow/tfjs';
+// import * as tf from '@tensorflow/tfjs';
 
 export { 
     MANO,
@@ -178,7 +178,7 @@ class MANO {
 
         const hands_components = dd.hands_components;
         const hands_mean = tf.clone(
-            flat_hand_mean ? tf.zeros([hands_components.shape[1]]) : dd.hand_mean);
+            flat_hand_mean ? tf.zeros([hands_components.shape[1]]) : dd.hands_mean);
         if (this.use_pca || (this.joint_rot_mode == 'axisang')) {
             this.hands_mean = hands_mean;
             this.comps = hands_components;
@@ -422,9 +422,9 @@ class MANO {
             throw Error;
         }
 
-        // const scale = 1000.0;
-        // verts = verts.mul(scale);
-        // jtr = jtr.mul(scale);
+        const scale = 1000.0;
+        verts = verts.mul(scale);
+        jtr = jtr.mul(scale);
         return [verts, jtr];
     }
 
