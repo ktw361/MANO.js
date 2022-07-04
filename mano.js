@@ -3,7 +3,7 @@ import * as THREE from 'three';
 /* Uncomment below to run mano_test.js in node.js*/
 import * as tf from '@tensorflow/tfjs';
 
-export { 
+export {
     MANO,
 
     Rodrigues_forward,
@@ -127,12 +127,7 @@ function subtract_flat_id(rot_mats) {
 // tensorb: (B, b, c)
 // => (B, a, c)
 function _bmm(tensor1, tensor2) {
-    const t1 = tensor1.unstack(0);
-    const t2 = tensor2.unstack(0);
-    const out = t1.map((e, i) => {
-        return e.dot(t2[i]);
-    });
-    return tf.stack(out, 0);
+    return tf.einsum('bij,bjk->bik', tensor1, tensor2);
 }
 
 class MANO {
@@ -145,7 +140,7 @@ class MANO {
         use_pca=true,
         root_rot_mode='axisang',
         joint_rot_mode='axisang',
-        ) 
+        )
     {
         this.center_idx = center_idx;
         this.flat_hand_mean = flat_hand_mean;
@@ -186,7 +181,7 @@ class MANO {
         } else {
             throw Error;
         }
-        
+
         this.kintree_table = dd.kintree_table;
 
         // Three.js fields
@@ -199,7 +194,7 @@ class MANO {
             colors.push(r, g, 0.5);
         }
         // Set init vertices
-        geometry.setAttribute('position', 
+        geometry.setAttribute('position',
             new THREE.Float32BufferAttribute(this.v_template.dataSync(), 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         const material = new THREE.MeshPhongMaterial( {
@@ -299,7 +294,7 @@ class MANO {
             // this.betas: (B, 10) => (10, B)
             // (778, 3, 10) x (10, B) = (778, 3, B) => (B, 778, 3)
             v_shaped = tf.dot(
-                this.shapedirs.reshape([V*3, 10]), 
+                this.shapedirs.reshape([V*3, 10]),
                 this.betas.transpose([1, 0]))
                 .reshape([V, 3, bsize]).transpose([2, 0, 1]).add(this.v_template);
 
@@ -307,7 +302,7 @@ class MANO {
             // v_shaped: (B, 778, 3) => (778, B*3)
             // (16, 778) x (B, 778, 3) = (16, B*3) => (16, B, 3) => (B, 16, 3)
             j = tf.dot(
-                this.J_regressor, 
+                this.J_regressor,
                 v_shaped.transpose([1, 0, 2]).reshape([V, bsize*3])
                 ).reshape([-1, bsize, 3]).transpose([1, 0, 2]);
         } else {
@@ -315,14 +310,14 @@ class MANO {
         }
 
         const v_posed = v_shaped.add(
-            tf.dot( 
+            tf.dot(
                 this.posedirs.reshape([V*3, -1]), // (V*3, 135)
                 pose_map.transpose([1, 0]) // (B, 135) => (135, B)
                 ) // = (V*3, B)
             .reshape([778, 3, bsize]) // => (V, 3, B)
             .transpose([2, 0, 1]) // => (B, V, 3)
         ); // (B, 778, 3)
-        
+
 
         // Global rigid transformation
 
@@ -385,14 +380,14 @@ class MANO {
         const T = tf.dot(
             results2.reshape([_d1*_d2*_d3, _d4]), this.weights.transpose([1, 0]))
             .reshape([_d1, _d2, _d3, 778]);  //  (B, 4, 4, 778)
-        
+
         const rest_shape_h = tf.concat([
             v_posed.transpose([0, 2, 1]),
             tf.ones([bsize, 1, v_posed.shape[1]], T.dtype)], 1); // (B, 4, 778)
 
         let verts = T.mul(rest_shape_h.expandDims(1)).sum(2).transpose([0, 2, 1]);
         verts = verts.slice([0, 0, 0], [bsize, verts.shape[1], 3]);
-        let jtr = results_global.slice([0, 0, 0, 3], 
+        let jtr = results_global.slice([0, 0, 0, 3],
             [bsize, results_global.shape[1], 3, 1]).squeeze(3);
         let tips;
         if (this.side == 'right') {
@@ -408,7 +403,7 @@ class MANO {
             jtr = tf.concat([palm, jtr.slice([0, 1], [bsize, jtr.shape[1]-1])], 1);
         }
         jtr = tf.concat([jtr, tips], 1);
-        jtr = tf.gather(jtr, 
+        jtr = tf.gather(jtr,
             [0, 13, 14, 15, 16, 1, 2, 3, 17, 4, 5, 6, 18, 10, 11, 12, 19, 7, 8, 9, 20],
             1);
 
@@ -422,9 +417,9 @@ class MANO {
             throw Error;
         }
 
-        // const scale = 1000.0;
-        // verts = verts.mul(scale);
-        // jtr = jtr.mul(scale);
+        const scale = 1000.0;
+        verts = verts.mul(scale);
+        jtr = jtr.mul(scale);
         return [verts, jtr];
     }
 

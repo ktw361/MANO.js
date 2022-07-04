@@ -486,8 +486,8 @@ function test_class() {
             'axisang',
         );
         const poses = tf.tensor([
-            [ 0.0000,  0.0000,  0.0000,  
-                0.0838, -0.1959,  0.2546, 
+            [ 0.0000,  0.0000,  0.0000,
+                0.0838, -0.1959,  0.2546,
                 -0.1168, -0.0063, 0.1333]])
         const betas = tf.zeros([1]);
         const trans = tf.zeros([1, 3]);
